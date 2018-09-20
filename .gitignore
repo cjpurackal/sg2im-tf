@@ -1,5 +1,5 @@
-data
-data/*
+dataset
+dataset/*
 log
 log/*
 *.pyc

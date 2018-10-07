@@ -1,38 +1,36 @@
 import json
-import pandas as pd
 
-class SGParser:
-	def __init__(self,scene_graph):
-		print ("inits")
-		self.sgraph = scene_graph
+def get_edges(s_graph):
+	with open(s_graph) as sgraph:
+		sg = json.load(sgraph) 	 
+	edges = []
+	for s in sg:
+		for rln in s['relationships']:
+			edges.append((rln['object_id'],rln['relationship_id'],rln['subject_id']))
+	return edges
 
-		with open(self.sgraph) as sgraph:
-			self.sg = json.load(sgraph) #pd.read_json(sgraph)
 
-
-	def show_sg(self):
-		ids =[]
-		c = 0
-		for rln in self.sg[0]['relationships'][0:5]:
+def get_objects_unique(s_graph):
+	with open(s_graph) as sgraph:
+		sg = json.load(sgraph) 	
+	ids = []	
+	for s in sg:
+		for rln in s['relationships']:
 			if rln['subject_id'] not in ids:
 				ids.append(rln['subject_id'])
 			if rln['object_id'] not in ids:
 				ids.append(rln['object_id'])
-			print(ids)
-			c = c + 1
-		return ids
 
-	def show_ob(self,ids):
+	return ids
 
-		for rln in self.sg[0]['objects']:
-			ido = rln['object_id']
-			if ido in ids:
-				print(ido)
 
 if __name__ == '__main__':
 
-	s = SGParser('test_sg.json')
 
-	ids = s.show_sg()
-	print "ids : ",len(ids)
+	e = get_edges('test_sg.json')
+	for i in e:
+		print i
 
+	e = get_objects_unique('test_sg.json')
+	for i in e:
+		print i

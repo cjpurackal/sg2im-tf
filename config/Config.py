@@ -8,3 +8,4 @@ class Config:
 			self.go_size = 200
 			self.new_obj_emb_size=100
 			self.batch_size = 5
+			self.boxnet_out = 4

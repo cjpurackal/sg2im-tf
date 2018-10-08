@@ -5,7 +5,7 @@ from tensorflow import keras
 from tensorflow.keras.layers import BatchNormalization
 import config.Config as conf
 
-class Hash:
+class MLP:
 
 	def __init__(self, typ, layers, activation="relu", dropout=0):
 		#constructs the mlp
@@ -29,7 +29,7 @@ class Hash:
 			gp = y[:,self.cfg.gs_size:self.cfg.gs_size+self.cfg.gp_size]
 			go = y[:,self.cfg.gs_size+self.cfg.gp_size:self.cfg.gs_size+self.cfg.gp_size+self.cfg.go_size]
 			return gs, gp ,go
-		elif self.type == "h":
+		elif self.type == "h" or self.type == "boxnet":
 			return y
 
 

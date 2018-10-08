@@ -1,6 +1,6 @@
 import tensorflow as tf
 import config.Config as conf
-from gcn.hash import Hash
+from gcn.mlp import MLP
 import numpy as np
 
 tf.enable_eager_execution()
@@ -24,7 +24,7 @@ o_idx = edges[:,1]
 # print (s_idx)
 
 
-g = Hash("g", [3*cfg.obj_embedding_size, 100, cfg.gs_size+cfg.gp_size+cfg.go_size], "relu") # computes gs,gp,go
+g = MLP("g", [3*cfg.obj_embedding_size, 100, cfg.gs_size+cfg.gp_size+cfg.go_size], "relu") # computes gs,gp,go
 new_s_emb, vr_, new_o_emb = g.infer(x) #returns new embeddings for predicates and cadidate object vectors 
 # print (s_idx.shape)
 # print (new_s_emb.shape)
@@ -36,5 +36,9 @@ V_i_s = tf.scatter_add(pool,s_idx, new_s_emb)
 V_i_o = tf.scatter_add(pool, o_idx, new_o_emb)
 V = V_i_s + V_i_o
 
-h = Hash("h", [V.shape[1], 100, cfg.new_obj_emb_size], "relu")
+h = MLP("h", [V.shape[1], 100, cfg.new_obj_emb_size], "relu")
 vi_ = h.infer(V) #returns new object embeddings
+
+boxnet = MLP("boxnet",[vi_.shape[1],100,cfg.boxnet_out])
+cords = boxnet.infer(vi_)
+x,y,w,h = cords[:,0], cords[:,1], cords[:,2], cords[:,3]

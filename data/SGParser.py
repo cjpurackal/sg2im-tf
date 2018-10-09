@@ -42,7 +42,7 @@ if __name__ == '__main__':
 
 	e = get_edges('test_sg.json')
 	for i in e:
-		print i
+		print (i)
 
 	e = get_objects_unique('test_sg.json')
 	for i in e:

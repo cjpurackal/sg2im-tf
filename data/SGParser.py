@@ -23,6 +23,19 @@ def get_objects_unique(s_graph):
 
 	return ids
 
+def get_relationships_unique(s_graph):
+	with open(s_graph) as sgraph:
+		sg = json.load(sgraph) 	
+	ids = []	
+	for s in sg:
+		for rln in s['relationships']:
+			if rln['relationship_id'] not in ids:
+				ids.append(rln['relationship_id'])
+			if rln['relationship_id'] not in ids:
+				ids.append(rln['relationship_id'])
+
+	return ids
+
 
 if __name__ == '__main__':
 
@@ -32,5 +45,9 @@ if __name__ == '__main__':
 		print i
 
 	e = get_objects_unique('test_sg.json')
+	for i in e:
+		print i
+
+	e = get_relationships_unique('test_sg.json')
 	for i in e:
 		print i

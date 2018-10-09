@@ -1,28 +1,36 @@
 import tensorflow as tf
+import numpy as np
 import config.Config as conf
 from gcn.mlp import MLP
-import numpy as np
+import data.SGParser as sgp
+
 
 tf.enable_eager_execution()
 
-objects = ["car","bike","cycle"]
-relationships = ["left of", "left of"]
+objects = sgp.get_objects_unique("data/test_sg.json")
+relationships = sgp.get_relationships_unique("data/test_sg.json")
 num_objs = len(objects)
 num_rels = len(relationships)
-
 cfg = conf.Config("dummy")
 
+#creating embeddings
 obj_embeddings = tf.get_variable("object_embeddings",[num_objs, cfg.obj_embedding_size])
 rel_embeddigs = tf.get_variable("relationships_embeddings",[num_rels, cfg.rel_embedding_size])
 
-#dummy test
-num_edges = 4
-x = np.random.rand(num_edges,3*cfg.obj_embedding_size)
-edges = np.array([[0,1],[1,2],[2,3],[3,0]])
-s_idx= edges[:,0]
-o_idx = edges[:,1]
-# print (s_idx)
+#test on rea data
+edges = sgp.get_edges("data/test_sg.json")
+num_edges = len(edges)
+x = np.zeros((num_edges,3*cfg.obj_embedding_size))
+for i,edge in enumerate(edges):
+	x[i,0:cfg.obj_embedding_size]=obj_embeddings[edge[0]]
+	x[i,cfg.obj_embedding_size:cfg.obj_embedding_size+cfg.rel_embedding_size]=rel_embeddigs[edge[1]]
+	x[i,cfg.obj_embedding_size+cfg.rel_embedding_size:]=rel_embeddigs[edge[2]]
 
+
+edges = np.array(edges)
+s_idx= edges[:,0]
+p_idx = edges[:,1]
+o_idx = edges[:,2]
 
 g = MLP("g", [3*cfg.obj_embedding_size, 100, cfg.gs_size+cfg.gp_size+cfg.go_size], "relu") # computes gs,gp,go
 new_s_emb, vr_, new_o_emb = g.infer(x) #returns new embeddings for predicates and cadidate object vectors 

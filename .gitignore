@@ -1,5 +1,6 @@
 dataset
 dataset/*
+data/*.json
 temp
 temp/*
 log

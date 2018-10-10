@@ -1,4 +1,5 @@
 import json
+import sys
 
 def get_edges(s_graph):
 	with open(s_graph) as sgraph:
@@ -40,14 +41,14 @@ def get_relationships_unique(s_graph):
 if __name__ == '__main__':
 
 
-	e = get_edges('test_sg.json')
+	e = get_edges(sys.argv[1])
 	for i in e:
 		print (i)
 
-	e = get_objects_unique('test_sg.json')
+	e = get_objects_unique(sys.argv[1])
 	for i in e:
-		print i
+		print (i)
 
-	e = get_relationships_unique('test_sg.json')
+	e = get_relationships_unique(sys.argv[1])
 	for i in e:
-		print i
+		print (i)

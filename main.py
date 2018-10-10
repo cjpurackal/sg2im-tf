@@ -1,44 +1,26 @@
 import tensorflow as tf
-import config.Config as conf
-from gcn.mlp import MLP
 import numpy as np
+import config.Config as conf
+from models.gcn import GCN
+from data import sgparser as sgp
 
 tf.enable_eager_execution()
 
-objects = ["car","bike","cycle"]
-relationships = ["left of", "left of"]
+objects = sgp.get_objects_unique("dataset/test_sg.json")
+relationships = sgp.get_relationships_unique("dataset/test_sg.json")
+edges = sgp.get_edges("dataset/test_sg.json")
 num_objs = len(objects)
 num_rels = len(relationships)
-
 cfg = conf.Config("dummy")
 
 obj_embeddings = tf.get_variable("object_embeddings",[num_objs, cfg.obj_embedding_size])
 rel_embeddigs = tf.get_variable("relationships_embeddings",[num_rels, cfg.rel_embedding_size])
 
-#dummy test
-num_edges = 4
-x = np.random.rand(num_edges,3*cfg.obj_embedding_size)
-edges = np.array([[0,1],[1,2],[2,3],[3,0]])
-s_idx= edges[:,0]
-o_idx = edges[:,1]
-# print (s_idx)
+obj_embs = [obj_embeddings[i] for i in objects]
+pred_embs = [rel_embeddigs[i] for i in relationships]
+model = GCN(4, cfg, [3*cfg.obj_embedding_size, 100, cfg.gs_size+cfg.gp_size+cfg.go_size], "relu")
+# model.infer(np.asarray(obj_embs), np.asarray(pred_embs), edges)
 
-
-g = MLP("g", [3*cfg.obj_embedding_size, 100, cfg.gs_size+cfg.gp_size+cfg.go_size], "relu") # computes gs,gp,go
-new_s_emb, vr_, new_o_emb = g.infer(x) #returns new embeddings for predicates and cadidate object vectors 
-# print (s_idx.shape)
-# print (new_s_emb.shape)
-num_objects = max(s_idx)+1 if max(s_idx) > max(o_idx) else max(o_idx)+1
-
-#pooling the candidate vectors
-pool = tf.Variable(np.zeros([num_objects,new_s_emb.shape[1]]))
-V_i_s = tf.scatter_add(pool,s_idx, new_s_emb)
-V_i_o = tf.scatter_add(pool, o_idx, new_o_emb)
-V = V_i_s + V_i_o
-
-h = MLP("h", [V.shape[1], 100, cfg.new_obj_emb_size], "relu")
-vi_ = h.infer(V) #returns new object embeddings
-
-boxnet = MLP("boxnet",[vi_.shape[1],100,cfg.boxnet_out])
-cords = boxnet.infer(vi_)
-x,y,w,h = cords[:,0], cords[:,1], cords[:,2], cords[:,3]
+# boxnet = MLP("boxnet",[vi_.shape[1],100,cfg.boxnet_out])
+# cords = boxnet.infer(vi_)
+# x,y,w,h = cords[:,0], cords[:,1], cords[:,2], cords[:,3]

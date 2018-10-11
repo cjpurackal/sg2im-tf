@@ -17,10 +17,12 @@ obj_embeddings = tf.get_variable("object_embeddings",[num_objs, cfg.obj_embeddin
 rel_embeddigs = tf.get_variable("relationships_embeddings",[num_rels, cfg.rel_embedding_size])
 
 obj_embs = [obj_embeddings[i] for i in objects]
+obj_embs = np.vstack(obj_embs)
 pred_embs = [rel_embeddigs[i] for i in relationships]
-model = GCN(4, cfg, [3*cfg.obj_embedding_size, 100, cfg.gs_size+cfg.gp_size+cfg.go_size], "relu")
-# model.infer(np.asarray(obj_embs), np.asarray(pred_embs), edges)
+pred_embs = np.vstack(pred_embs)
+model = GCN(4, cfg, "relu")
+model.infer(obj_embs, pred_embs, edges)
 
 # boxnet = MLP("boxnet",[vi_.shape[1],100,cfg.boxnet_out])
-# cords = boxnet.infer(vi_)
+# cords = boxnet.infer(vi_)	
 # x,y,w,h = cords[:,0], cords[:,1], cords[:,2], cords[:,3]

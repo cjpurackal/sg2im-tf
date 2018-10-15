@@ -7,10 +7,10 @@ import config.Config as conf
 
 class MLP:
 
-	def __init__(self, typ, layers, activation="relu", dropout=0):
+	def __init__(self, typ, layers, activation="relu", batch_norm = True, dropout=0):
 		#constructs the mlp
 		self.model = keras.Sequential()
-		self.cfg = conf.Config("dummy")
+		self.cgcn = conf.Config().GCN()
 		self.type = typ
 
 		for i in range(len(layers)):
@@ -18,16 +18,17 @@ class MLP:
 				self.model.add(keras.layers.Dense(layers[i+1], input_shape=(layers[i],), activation=activation))
 			elif i != len(layers)-1:
 				self.model.add(keras.layers.Dense(layers[i+1]))
-				self.model.add(BatchNormalization())
+				if batch_norm:
+					self.model.add(BatchNormalization())	
 			if dropout>0:
 				self.model.add(keras.layers.Dropout(dropout))
 
 	def infer(self, x):
 		y = self.model.predict(x, batch_size=5)
 		if self.type == "g":
-			gs = y[:,0:self.cfg.gs_size]
-			gp = y[:,self.cfg.gs_size:self.cfg.gs_size+self.cfg.gp_size]
-			go = y[:,self.cfg.gs_size+self.cfg.gp_size:self.cfg.gs_size+self.cfg.gp_size+self.cfg.go_size]
+			gs = y[:,0:self.cgcn.hidden_dim]
+			gp = y[:,self.cgcn.hidden_dim:self.cgcn.hidden_dim+self.cgcn.Dout]
+			go = y[:,self.cgcn.hidden_dim+self.cgcn.Dout:]
 			return gs, gp ,go
 		elif self.type == "h" or self.type == "boxnet":
 			return y

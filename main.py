@@ -3,6 +3,7 @@ import numpy as np
 import config.Config as conf
 from models.gcn import GCN
 from models.mlp import MLP
+from models.masknet import MaskNet
 from data import sgparser as sgp
 
 tf.enable_eager_execution()
@@ -28,3 +29,7 @@ vi_, vr_ = model.infer(vi, vr, edges)
 boxnet = MLP("boxnet",[vi_.shape[1],cgcn.hidden_dim,cgcn.boxnet_out], batch_norm=False)
 cords = boxnet.infer(vi_)
 x1,y1,x2,y2 = cords[:,0], cords[:,1], cords[:,2], cords[:,3]
+
+masknet = MaskNet()
+masknet.infer(vi_)
+masknet.print()

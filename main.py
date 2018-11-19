@@ -34,6 +34,6 @@ boxes = boxnet.infer(vi_)
 masknet = MaskNet()
 mask = masknet.infer(vi_)
 
-lm.make_from_boxes(boxes, vi, clyt.H, clyt.W)
+lmkb = lm.make_from_boxes(boxes, vi, clyt.H, clyt.W)
 
 

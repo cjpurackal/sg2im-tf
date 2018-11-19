@@ -10,3 +10,7 @@ class Config:
 			self.new_obj_emb_size=100
 			self.batch_size = 5
 			self.boxnet_out = 4
+	class Layout:
+		def __init__(self):
+			self.H = 128
+			self.W = 128

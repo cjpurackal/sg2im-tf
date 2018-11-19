@@ -5,6 +5,7 @@ from models.gcn import GCN
 from models.mlp import MLP
 from models.masknet import MaskNet
 from data import sgparser as sgp
+from layout import make as lm
 
 tf.enable_eager_execution()
 
@@ -14,6 +15,7 @@ edges = sgp.get_edges("dataset/test_sg.json")
 num_objs = len(objects)
 num_rels = len(relationships)
 cgcn = conf.Config().GCN()
+clyt = conf.Config().Layout()
 
 obj_embeddings = tf.get_variable("object_embeddings",[num_objs, cgcn.Din])
 rel_embeddigs = tf.get_variable("relationships_embeddings",[num_rels, cgcn.Din])
@@ -27,9 +29,11 @@ model = GCN(4, cgcn, "relu")
 vi_, vr_ = model.infer(vi, vr, edges)
 
 boxnet = MLP("boxnet",[vi_.shape[1],cgcn.hidden_dim,cgcn.boxnet_out], batch_norm=False)
-cords = boxnet.infer(vi_)
-x1,y1,x2,y2 = cords[:,0], cords[:,1], cords[:,2], cords[:,3]
+boxes = boxnet.infer(vi_)
 
 masknet = MaskNet()
-masknet.infer(vi_)
-masknet.print()
+mask = masknet.infer(vi_)
+
+lm.make_from_boxes(boxes, vi, clyt.H, clyt.W)
+
+

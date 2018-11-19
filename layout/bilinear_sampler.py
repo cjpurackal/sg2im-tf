@@ -1,99 +1,96 @@
 import tensorflow as tf
 
-def bilinear_sampler(x, v, resize=False, normalize=False, crop=None, out="CONSTANT"):
-  """
-    Args:
-      x - Input tensor [N, H, W, C]
-      v - Vector flow tensor [N, H, W, 2], tf.float32
+def bilinear_sampler(img, x, y):
+    """
+    Performs bilinear sampling of the input images according to the
+    normalized coordinates provided by the sampling grid. Note that
+    the sampling is done identically for each channel of the input.
+    To test if the function works properly, output image should be
+    identical to input image when theta is initialized to identity
+    transform.
+    Input
+    -----
+    - img: batch of images in (B, H, W, C) layout.
+    - grid: x, y which is the output of affine_grid_generator.
+    Returns
+    -------
+    - out: interpolated images according to grids. Same size as grid.
+    """
+    H = tf.shape(img)[1]
+    W = tf.shape(img)[2]
+    max_y = tf.cast(H - 1, 'int32')
+    max_x = tf.cast(W - 1, 'int32')
+    zero = tf.zeros([], dtype='int32')
 
-      (optional)
-      resize - Whether to resize v as same size as x
-      normalize - Whether to normalize v from scale 1 to H (or W).
-                  h : [-1, 1] -> [-H/2, H/2]
-                  w : [-1, 1] -> [-W/2, W/2]
-      crop - Setting the region to sample. 4-d list [h0, h1, w0, w1]
-      out  - Handling out of boundary value.
-             Zero value is used if out="CONSTANT".
-             Boundary values are used if out="EDGE".
-  """
+    # rescale x and y to [0, W-1/H-1]
+    x = tf.cast(x, 'float32')
+    y = tf.cast(y, 'float32')
+    x = 0.5 * ((x + 1.0) * tf.cast(max_x-1, 'float32'))
+    y = 0.5 * ((y + 1.0) * tf.cast(max_y-1, 'float32'))
 
-  def _get_grid_array(N, H, W, h, w):
-    N_i = tf.range(N)
-    H_i = tf.range(h+1, h+H+1)
-    W_i = tf.range(w+1, w+W+1)
-    n, h, w, = tf.meshgrid(N_i, H_i, W_i, indexing='ij')
-    n = tf.expand_dims(n, axis=3) # [N, H, W, 1]
-    h = tf.expand_dims(h, axis=3) # [N, H, W, 1]
-    w = tf.expand_dims(w, axis=3) # [N, H, W, 1]
-    n = tf.cast(n, tf.float32) # [N, H, W, 1]
-    h = tf.cast(h, tf.float32) # [N, H, W, 1]
-    w = tf.cast(w, tf.float32) # [N, H, W, 1]
+    # grab 4 nearest corner points for each (x_i, y_i)
+    x0 = tf.cast(tf.floor(x), 'int32')
+    x1 = x0 + 1
+    y0 = tf.cast(tf.floor(y), 'int32')
+    y1 = y0 + 1
 
-    return n, h, w
+    # clip to range [0, H-1/W-1] to not violate img boundaries
+    x0 = tf.clip_by_value(x0, zero, max_x)
+    x1 = tf.clip_by_value(x1, zero, max_x)
+    y0 = tf.clip_by_value(y0, zero, max_y)
+    y1 = tf.clip_by_value(y1, zero, max_y)
 
-  shape = tf.shape(x) # TRY : Dynamic shape
-  N = shape[0]
-  if crop is None:
-    H_ = H = shape[1]
-    W_ = W = shape[2]
-    h = w = 0
-  else :
-    H_ = shape[1]
-    W_ = shape[2]
-    H = crop[1] - crop[0]
-    W = crop[3] - crop[2]
-    h = crop[0]
-    w = crop[2]
+    # get pixel value at corner coords
+    Ia = get_pixel_value(img, x0, y0)
+    Ib = get_pixel_value(img, x0, y1)
+    Ic = get_pixel_value(img, x1, y0)
+    Id = get_pixel_value(img, x1, y1)
 
-  if resize:
-    if callable(resize) :
-      v = resize(v, [H, W])
-    else :
-      v = tf.image.resize_bilinear(v, [H, W])
+    # recast as float for delta calculation
+    x0 = tf.cast(x0, 'float32')
+    x1 = tf.cast(x1, 'float32')
+    y0 = tf.cast(y0, 'float32')
+    y1 = tf.cast(y1, 'float32')
 
-  if out == "CONSTANT":
-    x = tf.pad(x,
-      ((0,0), (1,1), (1,1), (0,0)), mode='CONSTANT')
-  elif out == "EDGE":
-    x = tf.pad(x,
-      ((0,0), (1,1), (1,1), (0,0)), mode='REFLECT')
+    # calculate deltas
+    wa = (x1-x) * (y1-y)
+    wb = (x1-x) * (y-y0)
+    wc = (x-x0) * (y1-y)
+    wd = (x-x0) * (y-y0)
 
-  vy, vx = tf.split(v, 2, axis=3)
-  if normalize :
-    vy *= tf.cast(H / 2, tf.float32)
-    vx *= tf.cast(W / 2, tf.float32)
+    # add dimension for addition
+    wa = tf.expand_dims(wa, axis=3)
+    wb = tf.expand_dims(wb, axis=3)
+    wc = tf.expand_dims(wc, axis=3)
+    wd = tf.expand_dims(wd, axis=3)
 
-  n, h, w = _get_grid_array(N, H, W, h, w) # [N, H, W, 3]
+    # compute output
+    out = tf.add_n([wa*Ia, wb*Ib, wc*Ic, wd*Id])
 
-  vx0 = tf.floor(vx)
-  vy0 = tf.floor(vy)
-  vx1 = vx0 + 1
-  vy1 = vy0 + 1 # [N, H, W, 1]
+    return out
 
-  H_1 = tf.cast(H_+1, tf.float32)
-  W_1 = tf.cast(W_+1, tf.float32)
-  iy0 = tf.clip_by_value(vy0 + h, 0., H_1)
-  iy1 = tf.clip_by_value(vy1 + h, 0., H_1)
-  ix0 = tf.clip_by_value(vx0 + w, 0., W_1)
-  ix1 = tf.clip_by_value(vx1 + w, 0., W_1)
+def get_pixel_value(img, x, y):
+    """
+    Utility function to get pixel value for coordinate
+    vectors x and y from a  4D tensor image.
+    Input
+    -----
+    - img: tensor of shape (B, H, W, C)
+    - x: flattened tensor of shape (B*H*W,)
+    - y: flattened tensor of shape (B*H*W,)
+    Returns
+    -------
+    - output: tensor of shape (B, H, W, C)
+    """
+    shape = tf.shape(x)
+    batch_size = shape[0]
+    height = shape[1]
+    width = shape[2]
 
-  i00 = tf.concat([n, iy0, ix0], 3)
-  i01 = tf.concat([n, iy1, ix0], 3)
-  i10 = tf.concat([n, iy0, ix1], 3)
-  i11 = tf.concat([n, iy1, ix1], 3) # [N, H, W, 3]
-  i00 = tf.cast(i00, tf.int32)
-  i01 = tf.cast(i01, tf.int32)
-  i10 = tf.cast(i10, tf.int32)
-  i11 = tf.cast(i11, tf.int32)
+    batch_idx = tf.range(0, batch_size)
+    batch_idx = tf.reshape(batch_idx, (batch_size, 1, 1))
+    b = tf.tile(batch_idx, (1, height, width))
 
-  x00 = tf.gather_nd(x, i00)
-  x01 = tf.gather_nd(x, i01)
-  x10 = tf.gather_nd(x, i10)
-  x11 = tf.gather_nd(x, i11)
-  w00 = tf.cast((vx1 - vx) * (vy1 - vy), tf.float32)
-  w01 = tf.cast((vx1 - vx) * (vy - vy0), tf.float32)
-  w10 = tf.cast((vx - vx0) * (vy1 - vy), tf.float32)
-  w11 = tf.cast((vx - vx0) * (vy - vy0), tf.float32)
-  output = tf.add_n([w00*x00, w01*x01, w10*x10, w11*x11])
+    indices = tf.stack([b, y, x], 3)
 
-  return output
+    return tf.gather_nd(img, indices)

@@ -10,7 +10,7 @@ def make_from_boxes(boxes, vi, H, W):
   print (vi.shape)
   print (grid.shape)
   # need to reimplement bilinear_sampler
-  # bs.bilinear_sampler(vi, grid[:,:,:,0], grid[:,:,:,1])
+  bs.bilinear_sampler(vi, grid[:,:,:,0], grid[:,:,:,1])
 
 
 def _boxes_to_grid(boxes, H, W):

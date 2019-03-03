@@ -1,5 +1,5 @@
 import tensorflow as tf 
-import layout.bilinear_sampler as bs
+import utils.bilinear_sampler as bs
 
 
 def make_from_boxes(boxes, vi, H, W):

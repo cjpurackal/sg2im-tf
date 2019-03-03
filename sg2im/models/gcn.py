@@ -42,6 +42,8 @@ class GCN:
 		return vi_, vr_
 
 
+	#obj- object
+	#pred - predicate
 	def infer(self, obj_embs, pred_embs, edges):
 		for _ in range(self.num_layers):
 			obj_embs, pred_embs = self.traverse(obj_embs, pred_embs, edges)

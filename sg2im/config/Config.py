@@ -1,3 +1,4 @@
+#change it to json configs
 class Config:
 	class GCN:
 		def __init__(self):

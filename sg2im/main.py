@@ -14,6 +14,7 @@ relationships = sgp.get_relationships_unique("dataset/test_sg.json")
 edges = sgp.get_edges("dataset/test_sg.json")
 num_objs = len(objects)
 num_rels = len(relationships)
+
 cgcn = conf.Config().GCN()
 clyt = conf.Config().Layout()
 

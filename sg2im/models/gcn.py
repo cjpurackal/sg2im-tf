@@ -26,8 +26,10 @@ class GCN:
 		p_idx = edges[:,1]
 		o_idx = edges[:,2]
 
+		#notation like "g/h" etc are used according to the original paper
 		g = MLP("g", [3*self.cfg.Din, self.cfg.hidden_dim, 2*self.cfg.hidden_dim + self.cfg.Dout], self.mlp_activation) # computes gs,gp,go
 		new_s_emb, vr_, new_o_emb = g.infer(x) #returns new embeddings for predicates and cadidate object vectors 
+		#assuming edges start from 0
 		num_objects = max(s_idx)+1 if max(s_idx) > max(o_idx) else max(o_idx)+1
 
 
